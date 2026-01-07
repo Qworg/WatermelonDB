@@ -5,7 +5,9 @@
   "engines": {
     "node": ">=18"
   },
+  "main": "dist/index.js",
   "scripts": {
+    "prepare": "npm run build",
     "up": "yarn",
     "build": "NODE_ENV=production node ./scripts/make.mjs",
     "dev": "NODE_ENV=development node ./scripts/make.mjs",
@@ -34,7 +36,7 @@
     "docs:deploy": "./scripts/update-docusaurus && cd docs-website && yarn deploy",
     "postinstall": "patch-package"
   },
-  "types": "src/index.d.ts",
+  "types": "dist/index.d.ts",
   "author": "@Nozbe",
   "homepage": "https://github.com/Nozbe/WatermelonDB#readme",
   "bugs": "https://github.com/Nozbe/WatermelonDB/issues",
