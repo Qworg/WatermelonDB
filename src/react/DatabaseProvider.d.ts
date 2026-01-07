@@ -10,7 +10,7 @@ export type Props = {
  * Database provider to create the database context
  * to allow child components to consume the database without prop drilling
  */
-declare function DatabaseProvider({ children, database }: Props): JSX.Element
+declare function DatabaseProvider({ children, database }: Props): React.JSX.Element
 
 export { default as withDatabase } from './withDatabase'
 export { default as DatabaseContext, DatabaseConsumer } from './DatabaseContext'

@@ -1,57 +1,131 @@
 // @flow
-
-import { useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import type { Observable } from 'rxjs'
 
 import identicalArrays from '../utils/fp/identicalArrays'
+import { subscribe, hasOwn, type ObservableConvertible } from './useObservables'
 
-import withObservables, { type ExtractTypeFromObservable } from './withObservables'
-import compose from './compose'
-import withHooks from './withHooks'
-import { type HOC } from './helpers'
+type ExtractType = <T>(value: Observable<T> | ObservableConvertible<T>) => T
 
-type ExportProps<ObservableProps> = $Exact<{
+type Props<ObservableProps> = {
+  /** Array of values that trigger re-subscription when changed */
   resetOn: any[],
+  /** Object of observables to subscribe to */
   observables: ObservableProps,
-  children: ($ObjMap<ObservableProps, ExtractTypeFromObservable>) => React$Node,
-}>
-
-type InitialProps = $Exact<{
-  resetOn: any[],
-  observables: { [string]: Observable<any> },
-  children: ({ [string]: any }) => React$Node,
-}>
-
-const WithObservables = (props: InitialProps) => {
-  const { children } = props
-
-  return children(props)
+  /** Render function receiving the resolved observable values */
+  children: ($ObjMap<ObservableProps, ExtractType>) => React$Node,
 }
 
-const enhance: HOC<any, InitialProps> = compose(
-  withHooks(({ resetOn, observables }) => {
-    const triggeringProps = useRef(resetOn)
-    if (!identicalArrays(triggeringProps.current, resetOn)) {
-      triggeringProps.current = resetOn
+/**
+ * Component version of withObservables using render props pattern.
+ *
+ * @example
+ * ```jsx
+ * <WithObservables
+ *   resetOn={[taskId]}
+ *   observables={{
+ *     task: database.get('tasks').findAndObserve(taskId),
+ *     comments: task.comments.observe()
+ *   }}
+ * >
+ *   {({ task, comments }) => <TaskView task={task} comments={comments} />}
+ * </WithObservables>
+ * ```
+ */
+export default function WithObservables<ObservableProps: { ... }>({
+  resetOn,
+  observables,
+  children,
+}: Props<ObservableProps>): React$Node {
+  const [state, setState] = useState<{
+    isLoading: boolean,
+    data: Object | null,
+    error: Error | null,
+  }>({
+    isLoading: true,
+    data: null,
+    error: null,
+  })
+
+  // Track resetOn values to detect changes
+  const prevResetOnRef = useRef<any[]>(resetOn)
+  const resetOnChanged = !identicalArrays(prevResetOnRef.current, resetOn)
+  if (resetOnChanged) {
+    prevResetOnRef.current = resetOn
+  }
+
+  // Memoize observables - only use reference from resetOn changes
+  const resetKey = prevResetOnRef.current
+  const memoizedObservables = useMemo(
+    () => observables,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resetKey],
+  )
+
+  useEffect(() => {
+    let isSubscribed = true
+    let subscriptions: Array<() => void> = []
+    const values: { [string]: any } = {}
+    let valueCount = 0
+
+    setState({ isLoading: true, data: null, error: null })
+
+    const keys = Object.keys(memoizedObservables)
+    const keyCount = keys.length
+
+    if (keyCount === 0) {
+      setState({ isLoading: false, data: {}, error: null })
+      return
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      const keys = Object.keys(observables)
-      if (
-        keys.includes('resetOn') ||
-        keys.includes('observables') ||
-        keys.includes('children') ||
-        keys.includes('__triggeringProps')
-      ) {
-        throw new Error(`Do not use reserved keys in WithObservables's observables props`)
-      }
+    const unsubscribeAll = () => {
+      isSubscribed = false
+      subscriptions.forEach((unsub) => unsub())
+      subscriptions = []
     }
 
-    return {
-      __triggeringProps: triggeringProps.current,
-    }
-  }),
-  withObservables(['__triggeringProps'], ({ observables }) => (observables: any)),
-)
+    keys.forEach((key) => {
+      if (!isSubscribed) return
 
-export default ((enhance(WithObservables): any): <T>(ExportProps<T>) => React$Node)
+      // $FlowFixMe
+      const subscribable = memoizedObservables[key]
+      subscriptions.push(
+        subscribe(
+          subscribable,
+          (value) => {
+            if (!isSubscribed) return
+            const isFirst = !hasOwn(values, key)
+            if (isFirst) valueCount += 1
+            values[key] = value
+            if (valueCount === keyCount) {
+              setState({ isLoading: false, data: { ...values }, error: null })
+            }
+          },
+          (error) => {
+            if (!isSubscribed) return
+            unsubscribeAll()
+            setState({ isLoading: false, data: null, error })
+          },
+          () => {},
+        ),
+      )
+    })
+
+    return unsubscribeAll
+  }, [memoizedObservables])
+
+  if (state.isLoading) {
+    return null
+  }
+
+  if (state.error) {
+    throw state.error
+  }
+
+  return children((state.data: any))
+}
+
+// $FlowFixMe[prop-missing] - displayName is a valid React pattern
+if (process.env.NODE_ENV !== 'production') {
+  ;(WithObservables: any).displayName = 'WithObservables'
+}

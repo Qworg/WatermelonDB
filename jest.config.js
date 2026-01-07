@@ -15,4 +15,5 @@ module.exports = {
   // coverageDirectory: 'coverage',
   // coverageReporters: ['html', 'json'],
   cacheDirectory: '.cache/jest',
+  testEnvironment: 'jsdom',
 }

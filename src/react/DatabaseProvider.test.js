@@ -1,5 +1,5 @@
 import React from 'react'
-import * as TestRenderer from 'react-test-renderer'
+import { render, screen } from '@testing-library/react'
 import Database from '../Database'
 import { mockDatabase } from '../__tests__/testModels'
 import DatabaseProvider from './DatabaseProvider'
@@ -7,8 +7,10 @@ import { DatabaseConsumer } from './DatabaseContext'
 import withDatabase from './withDatabase'
 
 // Simple mock component
-function MockComponent() {
-  return <span />
+function MockComponent({ database }) {
+  return (
+    <span data-testid="mock-component">{database instanceof Database ? 'valid' : 'invalid'}</span>
+  )
 }
 
 describe('DatabaseProvider', () => {
@@ -17,41 +19,60 @@ describe('DatabaseProvider', () => {
     database = mockDatabase().db
   })
   it('throws if no database or adapter supplied', () => {
+    // Suppress console.error for expected errors
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
     expect(() => {
-      TestRenderer.create(
+      render(
         <DatabaseProvider>
           <p />
         </DatabaseProvider>,
       )
     }).toThrow(/You must supply a valid database/i)
+
     expect(() => {
-      TestRenderer.create(
+      render(
         <DatabaseProvider database={{ fake: 'db' }}>
           <p />
         </DatabaseProvider>,
       )
     }).toThrow(/You must supply a valid database/i)
+
+    consoleSpy.mockRestore()
   })
   it('passes database to consumer', () => {
-    const instance = TestRenderer.create(
+    let receivedDatabase = null
+    render(
       <DatabaseProvider database={database}>
-        <DatabaseConsumer>{(db) => <MockComponent database={db} />}</DatabaseConsumer>
+        <DatabaseConsumer>
+          {(db) => {
+            receivedDatabase = db
+            return <MockComponent database={db} />
+          }}
+        </DatabaseConsumer>
       </DatabaseProvider>,
     )
-    const component = instance.root.find(MockComponent)
-    expect(component.props.database).toBeInstanceOf(Database)
+
+    expect(receivedDatabase).toBeInstanceOf(Database)
+    expect(screen.getByTestId('mock-component').textContent).toBe('valid')
   })
 
   describe('withDatabase', () => {
     test('should pass the database from the context to the consumer', () => {
-      const Child = withDatabase(MockComponent)
-      const instance = TestRenderer.create(
+      let receivedDatabase = null
+      const Child = withDatabase(({ database: db }) => {
+        receivedDatabase = db
+        return <MockComponent database={db} />
+      })
+
+      render(
         <DatabaseProvider database={database}>
           <Child />
         </DatabaseProvider>,
       )
-      const component = instance.root.find(MockComponent)
-      expect(component.props.database).toBeInstanceOf(Database)
+
+      expect(receivedDatabase).toBeInstanceOf(Database)
+      expect(screen.getByTestId('mock-component').textContent).toBe('valid')
     })
   })
 })

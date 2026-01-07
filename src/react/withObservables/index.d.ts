@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { ComponentType, NamedExoticComponent } from 'react'
 import { Observable } from 'rxjs'
 import hoistNonReactStatics = require('hoist-non-react-statics')
@@ -56,7 +57,7 @@ type Shared<InjectedProps, DecorationTargetProps> = {
 // Applies LibraryManagedAttributes (proper handling of defaultProps
 // and propTypes), as well as defines WrappedComponent.
 type ConnectedComponent<C extends ComponentType<any>, P> = NamedExoticComponent<
-  JSX.LibraryManagedAttributes<C, P>
+  React.JSX.LibraryManagedAttributes<C, P>
 > &
   hoistNonReactStatics.NonReactStatics<C> & {
     WrappedComponent: C
