@@ -6,6 +6,7 @@
     "node": ">=18"
   },
   "main": "dist/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "prepare": "npm run build",
     "up": "yarn",
