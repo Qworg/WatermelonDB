@@ -6,7 +6,73 @@
     "node": ">=18"
   },
   "main": "dist/index.js",
-  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./adapters/lokijs": {
+      "default": "./dist/adapters/lokijs/index.js"
+    },
+    "./adapters/sqlite": {
+      "default": "./dist/adapters/sqlite/index.js"
+    },
+    "./Collection": {
+      "default": "./dist/Collection/index.js"
+    },
+    "./Database": {
+      "default": "./dist/Database/index.js"
+    },
+    "./DatabaseProvider": {
+      "types": "./dist/DatabaseProvider/index.d.ts",
+      "default": "./dist/DatabaseProvider/index.js"
+    },
+    "./decorators/*": {
+      "default": "./dist/decorators/*/index.js"
+    },
+    "./hooks": {
+      "default": "./dist/hooks/index.js"
+    },
+    "./Model": {
+      "default": "./dist/Model/index.js"
+    },
+    "./observation/*": {
+      "default": "./dist/observation/*/index.js"
+    },
+    "./Query": {
+      "default": "./dist/Query/index.js"
+    },
+    "./QueryDescription": {
+      "default": "./dist/QueryDescription/index.js"
+    },
+    "./RawRecord": {
+      "default": "./dist/RawRecord/index.js"
+    },
+    "./react": {
+      "default": "./dist/react/index.js"
+    },
+    "./react/*": {
+      "default": "./dist/react/*.js"
+    },
+    "./Relation": {
+      "default": "./dist/Relation/index.js"
+    },
+    "./Schema": {
+      "default": "./dist/Schema/index.js"
+    },
+    "./Schema/*": {
+      "default": "./dist/Schema/*/index.js"
+    },
+    "./sync": {
+      "default": "./dist/sync/index.js"
+    },
+    "./sync/*": {
+      "default": "./dist/sync/*/index.js"
+    },
+    "./utils/*": {
+      "default": "./dist/utils/*/index.js"
+    }
+  },
   "scripts": {
     "prepare": "npm run build",
     "up": "yarn",
